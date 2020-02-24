@@ -511,12 +511,18 @@ struct MountPointStateMachine
                         try
                         {
                             auto ret = handleMount(yield, machine);
-                            machine.target->credentials.reset();
+                            if (machine.target)
+                            {
+                                machine.target->credentials.reset();
+                            }
                             return ret;
                         }
                         catch (...)
                         {
-                            machine.target->credentials.reset();
+                            if (machine.target)
+                            {
+                                machine.target->credentials.reset();
+                            }
                             throw;
                             return false;
                         }
