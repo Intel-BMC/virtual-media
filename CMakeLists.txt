@@ -19,6 +19,9 @@ option(VM_USE_VALGRIND "Build VirtualMedia to work with valgrind" OFF)
 
 option(VM_VERBOSE_NBDKIT_LOGS "Include detailed logs from nbdkit" OFF)
 
+option(LEGACY_MODE_ENABLED
+       "Enable 'legacy mode' - mounting remote shares using nbdkit" OFF)
+
 if(NOT ${YOCTO_DEPENDENCIES})
   include(ExternalProject)
 
@@ -137,6 +140,8 @@ target_compile_definitions(virtual-media
                            -DBOOST_USE_VALGRIND>
                            $<$<BOOL:${VM_VERBOSE_NBDKIT_LOGS}>:
                            -DVM_VERBOSE_NBDKIT_LOGS>
+                           $<$<BOOL:${LEGACY_MODE_ENABLED}>:
+                           -DLEGACY_MODE_ENABLED>
                            $<$<BOOL:${CUSTOM_DBUS_PATH}>:
                            -DCUSTOM_DBUS_PATH="${CUSTOM_DBUS_PATH}">)
 

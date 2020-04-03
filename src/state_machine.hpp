@@ -282,6 +282,15 @@ struct MountPointStateMachine
         {
             const bool isLegacy =
                 (state.machine.config.mode == Configuration::Mode::legacy);
+
+#if !LEGACY_MODE_ENABLED
+            if (isLegacy)
+            {
+                return ReadyState(state, std::errc::invalid_argument,
+                                  "Legacy mode is not supported");
+            }
+#endif
+
             addMountPointInterface(state);
             addProcessInterface(state);
             addServiceInterface(state, isLegacy);
