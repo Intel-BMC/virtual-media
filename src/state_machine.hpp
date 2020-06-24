@@ -1002,7 +1002,7 @@ struct MountPointStateMachine
         if (ret != 0)
         {
             // This shouldn't ever happen, perhaps best is to restart app
-            LogMsg(Logger::Critical, name, " Some serious failrue happen!");
+            LogMsg(Logger::Critical, name, " Some serious failure happened!");
             return false;
         }
         return true;

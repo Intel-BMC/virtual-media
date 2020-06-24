@@ -39,8 +39,10 @@ class Configuration
 
         static std::vector<std::string> toArgs(const MountPoint& mp)
         {
+            const auto timeout = std::to_string(mp.timeout.value_or(30));
             std::vector<std::string> args = {
-                "-t", "30", "-u", mp.unixSocket, mp.nbdDevice.to_path(), "-n"};
+                "-t", timeout, "-u", mp.unixSocket, mp.nbdDevice.to_path(),
+                "-n"};
             return args;
         }
     };
