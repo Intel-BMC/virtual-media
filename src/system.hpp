@@ -568,13 +568,14 @@ struct UsbGadget
         // StateChange: unknown, notMonitored, inserted were handler
         // earlier. We'll get here only for removed, or cleanup
 
+        echoToFile(gadgetDir / "UDC", "");
         const std::array<const char*, 6> dirs = {
             massStorageDir.c_str(),   funcMassStorageDir.c_str(),
             configStringsDir.c_str(), configDir.c_str(),
             stringsDir.c_str(),       gadgetDir.c_str()};
         for (const char* dir : dirs)
         {
-            fs::remove_all(dir, ec);
+            fs::remove(dir, ec);
             if (ec)
             {
                 success = false;
