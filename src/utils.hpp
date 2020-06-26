@@ -181,20 +181,7 @@ class VolatileFile
 
     ~VolatileFile()
     {
-        // Purge file contents
-        std::array<char, secretLimit> buf;
-        buf.fill('*');
-        std::ofstream file(filePath);
-        std::size_t bytesWritten = 0, bytesToWrite = 0;
-
-        while (bytesWritten < size)
-        {
-            bytesToWrite = std::min(secretLimit, (size - bytesWritten));
-            file.write(buf.data(), bytesToWrite);
-            bytesWritten += bytesToWrite;
-        }
-
-        // Remove leftover file
+        purgeFileContents();
         fs::remove(filePath);
     }
 
@@ -206,16 +193,34 @@ class VolatileFile
   private:
     static void create(const std::string& filePath, const Buffer& data)
     {
-        // Create file
         std::ofstream file(filePath);
+        limitPermissionsToOwnerOnly(filePath);
+        file.write(data->data(), data->size());
+    }
 
-        // Limit permissions to owner only
+    static void limitPermissionsToOwnerOnly(const std::string& filePath)
+    {
         fs::permissions(filePath,
                         fs::perms::owner_read | fs::perms::owner_write,
                         fs::perm_options::replace);
+    }
 
-        // Write contents
-        file.write(data->data(), data->size());
+    void purgeFileContents()
+    {
+        if (std::ofstream file(filePath); file)
+        {
+            std::array<char, secretLimit> buf;
+            buf.fill('*');
+
+            std::size_t bytesWritten = 0;
+            while (bytesWritten < size)
+            {
+                std::size_t bytesToWrite =
+                    std::min(secretLimit, (size - bytesWritten));
+                file.write(buf.data(), bytesToWrite);
+                bytesWritten += bytesToWrite;
+            }
+        }
     }
 
     const std::string filePath;
