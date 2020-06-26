@@ -1,7 +1,7 @@
 {
     "InactivityTimeout": 1800,
     "MountPoints": {
-        "ISO0": {
+        "Slot_0": {
             "EndpointId": "/nbd/0",
             "Mode": 0,
             "NBDDevice": "nbd0",
@@ -9,7 +9,7 @@
             "Timeout": 30,
             "BlockSize": 512
         },
-        "USB0": {
+        "Slot_1": {
             "EndpointId": "/nbd/1",
             "Mode": 0,
             "NBDDevice": "nbd1",
@@ -17,7 +17,7 @@
             "Timeout": 30,
             "BlockSize": 512
         },
-        "USB1": {
+        "Slot_2": {
             "EndpointId": "",
             "Mode": 1,
             "NBDDevice": "nbd2",
@@ -25,7 +25,7 @@
             "Timeout": 30,
             "BlockSize": 512
         },
-        "USB2": {
+        "Slot_3": {
             "EndpointId": "",
             "Mode": 1,
             "NBDDevice": "nbd3",
