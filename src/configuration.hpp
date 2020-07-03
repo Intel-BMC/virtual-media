@@ -29,6 +29,8 @@ class Configuration
 
     struct MountPoint
     {
+        static constexpr int defaultTimeout = 30;
+
         NBDDevice nbdDevice;
         std::string unixSocket;
         std::string endPointId;
@@ -39,7 +41,8 @@ class Configuration
 
         static std::vector<std::string> toArgs(const MountPoint& mp)
         {
-            const auto timeout = std::to_string(mp.timeout.value_or(30));
+            const auto timeout =
+                std::to_string(mp.timeout.value_or(defaultTimeout));
             std::vector<std::string> args = {
                 "-t", timeout, "-u", mp.unixSocket, mp.nbdDevice.to_path(),
                 "-n"};

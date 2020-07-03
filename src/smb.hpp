@@ -58,40 +58,6 @@ class SmbShare
         return true;
     }
 
-    static std::optional<fs::path> createMountDir(const fs::path& name)
-    {
-        auto destPath = fs::temp_directory_path() / name;
-        std::error_code ec;
-
-        if (fs::create_directory(destPath, ec))
-        {
-            return destPath;
-        }
-
-        LogMsg(Logger::Error, ec,
-               " : Unable to create mount directory: ", destPath);
-        return {};
-    }
-
-    static void unmount(const fs::path& mountDir)
-    {
-        int result;
-        std::error_code ec;
-
-        result = ::umount(mountDir.string().c_str());
-        if (result)
-        {
-            LogMsg(Logger::Error, result, " : Unable to unmout directory ",
-                   mountDir);
-        }
-
-        if (!fs::remove_all(mountDir, ec))
-        {
-            LogMsg(Logger::Error, ec, " : Unable to remove mount directory ",
-                   mountDir);
-        }
-    }
-
   private:
     std::string mountDir;
 };

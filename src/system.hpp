@@ -348,7 +348,7 @@ class DeviceMonitor
 class Process : public std::enable_shared_from_this<Process>
 {
   public:
-    Process(boost::asio::io_context& ioc, const std::string& name,
+    Process(boost::asio::io_context& ioc, std::string_view name,
             const std::string& app, const NBDDevice& dev) :
         ioc(ioc),
         pipe(ioc), name(name), app(app), dev(dev)
@@ -372,70 +372,72 @@ class Process : public std::enable_shared_from_this<Process>
             return false;
         }
 
-        boost::asio::spawn(
-            ioc, [this, self = shared_from_this(),
-                  onExit{std::move(onExit)}](boost::asio::yield_context yield) {
-                boost::system::error_code bec;
-                std::string line;
-                boost::asio::dynamic_string_buffer buffer{line};
-                LogMsg(Logger::Info,
-                       "[Process]: Start reading console from nbd-client");
-                while (1)
+        boost::asio::spawn(ioc, [this, self = shared_from_this(),
+                                 onExit = std::move(onExit)](
+                                    boost::asio::yield_context yield) {
+            boost::system::error_code bec;
+            std::string line;
+            boost::asio::dynamic_string_buffer buffer{line};
+            LogMsg(Logger::Info,
+                   "[Process]: Start reading console from nbd-client");
+            while (1)
+            {
+                auto x = boost::asio::async_read_until(pipe, std::move(buffer),
+                                                       '\n', yield[bec]);
+                auto lineBegin = line.begin();
+                while (lineBegin != line.end())
                 {
-                    auto x = boost::asio::async_read_until(
-                        pipe, std::move(buffer), '\n', yield[bec]);
-                    auto lineBegin = line.begin();
-                    while (lineBegin != line.end())
+                    auto lineEnd = find(lineBegin, line.end(), '\n');
+                    LogMsg(Logger::Debug, "[Process]: (", name, ") ",
+                           std::string(lineBegin, lineEnd));
+                    if (lineEnd == line.end())
                     {
-                        auto lineEnd = find(lineBegin, line.end(), '\n');
-                        LogMsg(Logger::Debug, "[Process]: (", name, ") ",
-                               std::string(lineBegin, lineEnd));
-                        if (lineEnd == line.end())
-                        {
-                            break;
-                        }
-                        lineBegin = lineEnd + 1;
-                    }
-
-                    buffer.consume(x);
-                    if (bec)
-                    {
-                        LogMsg(Logger::Debug, "[Process]: (", name,
-                               ") Loop Error: ", bec);
                         break;
                     }
-                }
-                LogMsg(Logger::Info, "[Process]: Exiting from COUT Loop");
-                // The process shall be dead, or almost here, give it a chance
-                LogMsg(Logger::Debug,
-                       "[Process]: Waiting process to finish normally");
-                boost::asio::steady_timer timer(ioc);
-                int32_t waitCnt = 20;
-                while (child.running() && waitCnt > 0)
-                {
-                    boost::system::error_code ignored_ec;
-                    timer.expires_from_now(std::chrono::milliseconds(100));
-                    timer.async_wait(yield[ignored_ec]);
-                    waitCnt--;
-                }
-                if (child.running())
-                {
-                    child.terminate();
+                    lineBegin = lineEnd + 1;
                 }
 
-                child.wait();
-                LogMsg(Logger::Info, "[Process]: running: ", child.running(),
-                       " EC: ", child.exit_code(),
-                       " Native: ", child.native_exit_code());
+                buffer.consume(x);
+                if (bec)
+                {
+                    LogMsg(Logger::Debug, "[Process]: (", name,
+                           ") Loop Error: ", bec);
+                    break;
+                }
+            }
+            LogMsg(Logger::Info, "[Process]: Exiting from COUT Loop");
+            // The process shall be dead, or almost here, give it a chance
+            LogMsg(Logger::Debug,
+                   "[Process]: Waiting process to finish normally");
+            boost::asio::steady_timer timer(ioc);
+            int32_t waitCnt = 20;
+            while (child.running() && waitCnt > 0)
+            {
+                boost::system::error_code ignored_ec;
+                timer.expires_from_now(std::chrono::milliseconds(100));
+                timer.async_wait(yield[ignored_ec]);
+                waitCnt--;
+            }
+            if (child.running())
+            {
+                child.terminate();
+            }
 
-                onExit(child.exit_code(), dev.isReady());
-            });
+            child.wait();
+            LogMsg(Logger::Info, "[Process]: running: ", child.running(),
+                   " EC: ", child.exit_code(),
+                   " Native: ", child.native_exit_code());
+
+            onExit(child.exit_code(), dev.isReady());
+        });
         return true;
     }
 
-    void stop()
+    template <class OnTerminateCb>
+    void stop(OnTerminateCb&& onTerminate)
     {
-        boost::asio::spawn(ioc, [this, self = shared_from_this()](
+        boost::asio::spawn(ioc, [this, self = shared_from_this(),
+                                 onTerminate = std::move(onTerminate)](
                                     boost::asio::yield_context yield) {
             // The Good
             dev.disconnect();
@@ -455,6 +457,7 @@ class Process : public std::enable_shared_from_this<Process>
                 LogMsg(Logger::Info, "[Process] Terminate if process doesnt "
                                      "want to exit nicely");
                 child.terminate();
+                onTerminate();
             }
         });
     }

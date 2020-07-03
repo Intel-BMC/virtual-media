@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <sdbusplus/asio/object_server.hpp>
 #include <string>
 
 namespace fs = std::filesystem;

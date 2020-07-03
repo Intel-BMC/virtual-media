@@ -117,7 +117,8 @@ add_definitions(-DBOOST_NO_TYPEID)
 add_definitions(-DBOOST_ASIO_DISABLE_THREADS)
 
 # Define source files
-set(SRC_FILES src/main.cpp)
+include_directories(src)
+set(SRC_FILES src/main.cpp src/state/activating_state.cpp src/resources.cpp)
 
 # Executables
 add_executable(virtual-media ${SRC_FILES} ${HEADER_FILES})
