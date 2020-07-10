@@ -91,6 +91,9 @@ struct InitialState : public BasicStateT<InitialState>
         iface->register_property("EndpointId", machine.getConfig().endPointId);
         iface->register_property("Socket", machine.getConfig().unixSocket);
         iface->register_property(
+            "Timeout", machine.getConfig().timeout.value_or(
+                           Configuration::MountPoint::defaultTimeout));
+        iface->register_property(
             "RemainingInactivityTimeout", 0,
             [](const int& req, int& property) {
                 throw sdbusplus::exception::SdBusError(
@@ -101,7 +104,6 @@ struct InitialState : public BasicStateT<InitialState>
             [& config = machine.getConfig()](const int& property) -> int {
                 return config.remainingInactivityTimeout.count();
             });
-
         iface->initialize();
     }
 
@@ -132,6 +134,7 @@ struct InitialState : public BasicStateT<InitialState>
                         timerPeriod](boost::asio::yield_context yield) {
                 LogMsg(Logger::Info, "[App]: Unmount called on ",
                        machine.getName());
+
                 try
                 {
                     machine.emitUnmountEvent();
@@ -159,6 +162,8 @@ struct InitialState : public BasicStateT<InitialState>
                 }
                 LogMsg(Logger::Error,
                        "[App] timedout when waiting for ReadyState");
+                throw sdbusplus::exception::SdBusError(EBUSY,
+                                                       "Resource is busy");
                 return false;
             });
 
@@ -208,6 +213,8 @@ struct InitialState : public BasicStateT<InitialState>
                 }
                 LogMsg(Logger::Error,
                        "[App] timedout when waiting for ActiveState");
+                throw sdbusplus::exception::SdBusError(EBUSY,
+                                                       "Resource is busy");
                 return false;
             };
 

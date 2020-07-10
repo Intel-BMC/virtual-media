@@ -39,21 +39,12 @@ std::unique_ptr<BasicState>
     if (event.devState == StateChange::inserted)
     {
         gadget = std::make_unique<resource::Gadget>(machine, event.devState);
-
-        if (gadget)
-        {
-            return std::make_unique<ActiveState>(machine, std::move(process),
-                                                 std::move(gadget));
-        }
-
-        return std::make_unique<ReadyState>(machine,
-                                            std::errc::device_or_resource_busy,
-                                            "Unable to configure gadget");
+        return std::make_unique<ActiveState>(machine, std::move(process),
+                                             std::move(gadget));
     }
 
-    return std::make_unique<ReadyState>(
-        machine, std::errc::operation_not_supported,
-        "Unexpected udev event: " + static_cast<int>(event.devState));
+    return std::make_unique<DeactivatingState>(machine, std::move(process),
+                                               std::move(gadget), event);
 }
 
 std::unique_ptr<BasicState>
