@@ -240,7 +240,9 @@ std::unique_ptr<resource::Process>
     std::vector<std::string> params = {// Use curl plugin ...
                                        "curl",
                                        // ... to mount http resource at url
-                                       "url=" + url};
+                                       "url=" + url,
+                                       // custom OpenBMC path for CA
+                                       "capath=/etc/ssl/certs/authority"};
 
     // Authenticate if needed
     if (machine.getTarget()->credentials)
