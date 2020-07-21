@@ -22,7 +22,7 @@
             "Mode": 1,
             "NBDDevice": "nbd2",
             "UnixSocket": "/tmp/nbd2.sock",
-            "Timeout": 30,
+            "Timeout": 90,
             "BlockSize": 512
         },
         "Slot_3": {
@@ -30,7 +30,7 @@
             "Mode": 1,
             "NBDDevice": "nbd3",
             "UnixSocket": "/tmp/nbd3.sock",
-            "Timeout": 30,
+            "Timeout": 90,
             "BlockSize": 512
         }
     }
