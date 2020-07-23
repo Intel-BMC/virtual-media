@@ -3,6 +3,8 @@
 #include "logger.hpp"
 #include "system.hpp"
 
+#include <sys/types.h>
+
 #include <algorithm>
 #include <boost/container/flat_map.hpp>
 #include <iostream>
@@ -26,6 +28,8 @@ class Configuration
         // CIFS/HTTPS image pointed during initialization.
         legacy = 1,
     };
+
+    static constexpr mode_t defaultUmask = 077;
 
     struct MountPoint
     {

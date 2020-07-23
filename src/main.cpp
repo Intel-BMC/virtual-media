@@ -4,6 +4,8 @@
 #include "system.hpp"
 
 #include <sys/mount.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include <boost/asio.hpp>
 #include <boost/asio/buffer.hpp>
@@ -75,6 +77,22 @@ int main()
     Configuration config("/etc/virtual-media.json");
     if (!config.valid)
         return -1;
+
+    // setup secure ownership for newly created files (always succeeds)
+    umask(Configuration::defaultUmask);
+
+    // Create directory with limited access rights to hold sockets
+    try
+    {
+        std::filesystem::create_directories(
+            std::filesystem::temp_directory_path() / "sock");
+    }
+    catch (std::filesystem::filesystem_error& e)
+    {
+        LogMsg(Logger::Error,
+               "Cannot create secure directory for sockets: ", e.what());
+        return -1;
+    }
 
     boost::asio::io_context ioc;
     boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
