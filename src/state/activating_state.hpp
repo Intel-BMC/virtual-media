@@ -17,14 +17,12 @@ struct ActivatingState : public BasicStateT<ActivatingState>
     std::unique_ptr<BasicState> handleEvent(SubprocessStoppedEvent event);
 
     template <class AnyEvent>
-    std::unique_ptr<BasicState> handleEvent(AnyEvent event)
-    {
+    [[noreturn]] std::unique_ptr<BasicState> handleEvent(AnyEvent event) {
         LogMsg(Logger::Error, "Invalid event: ", event.eventName);
-        return nullptr;
+        throw sdbusplus::exception::SdBusError(EBUSY, "Resource is busy");
     }
 
-  private:
-    std::unique_ptr<BasicState> activateProxyMode();
+    private : std::unique_ptr<BasicState> activateProxyMode();
     std::unique_ptr<BasicState> activateLegacyMode();
     std::unique_ptr<BasicState> mountSmbShare();
     std::unique_ptr<BasicState> mountHttpsShare();

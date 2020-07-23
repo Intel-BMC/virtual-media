@@ -49,14 +49,12 @@ struct DeactivatingState : public BasicStateT<DeactivatingState>
     }
 
     template <class AnyEvent>
-    std::unique_ptr<BasicState> handleEvent(AnyEvent event)
-    {
+    [[noreturn]] std::unique_ptr<BasicState> handleEvent(AnyEvent event) {
         LogMsg(Logger::Error, "Invalid event: ", event.eventName);
-        return nullptr;
+        throw sdbusplus::exception::SdBusError(EBUSY, "Resource is busy");
     }
 
-  private:
-    std::unique_ptr<BasicState> evaluate()
+    private : std::unique_ptr<BasicState> evaluate()
     {
         if (udevStateChangeEvent && subprocessStoppedEvent)
         {

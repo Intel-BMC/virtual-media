@@ -134,17 +134,7 @@ struct InitialState : public BasicStateT<InitialState>
                         timerPeriod](boost::asio::yield_context yield) {
                 LogMsg(Logger::Info, "[App]: Unmount called on ",
                        machine.getName());
-
-                try
-                {
-                    machine.emitUnmountEvent();
-                }
-                catch (const std::exception& e)
-                {
-                    LogMsg(Logger::Error, e.what());
-                    throw sdbusplus::exception::SdBusError(EPERM, e.what());
-                    return false;
-                }
+                machine.emitUnmountEvent();
 
                 auto repeats = waitCnt;
                 boost::asio::steady_timer timer(machine.getIoc());
@@ -174,16 +164,7 @@ struct InitialState : public BasicStateT<InitialState>
                 interfaces::MountPointStateMachine& machine,
                 std::optional<interfaces::MountPointStateMachine::Target>
                     target) {
-                try
-                {
-                    machine.emitMountEvent(std::move(target));
-                }
-                catch (const std::exception& e)
-                {
-                    LogMsg(Logger::Error, e.what());
-                    throw sdbusplus::exception::SdBusError(EPERM, e.what());
-                    return false;
-                }
+                machine.emitMountEvent(std::move(target));
 
                 auto repeats = waitCnt;
                 boost::asio::steady_timer timer(machine.getIoc());
