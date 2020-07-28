@@ -67,13 +67,13 @@ struct InitialState : public BasicStateT<InitialState>
         processIface->register_property(
             "Active", bool(false),
             [](const bool& req, bool& property) { return 0; },
-            [& machine = machine](const bool& property) -> bool {
+            [&machine = machine](const bool& property) -> bool {
                 return machine.getState().get_if<ActiveState>();
             });
         processIface->register_property(
             "ExitCode", int32_t(0),
             [](const int32_t& req, int32_t& property) { return 0; },
-            [& machine = machine](const int32_t& property) {
+            [&machine = machine](const int32_t& property) {
                 return machine.getExitCode();
             });
         processIface->initialize();
@@ -91,6 +91,20 @@ struct InitialState : public BasicStateT<InitialState>
         iface->register_property("EndpointId", machine.getConfig().endPointId);
         iface->register_property("Socket", machine.getConfig().unixSocket);
         iface->register_property(
+            "ImageURL", std::string(),
+            [](const std::string& req, std::string& property) {
+                throw sdbusplus::exception::SdBusError(
+                    EPERM, "Setting ImageURL property is not allowed");
+                return -1;
+            },
+            [&target = machine.getTarget()](const std::string& property) {
+                if (target)
+                {
+                    return target->imgUrl;
+                }
+                return std::string();
+            });
+        iface->register_property(
             "Timeout", machine.getConfig().timeout.value_or(
                            Configuration::MountPoint::defaultTimeout));
         iface->register_property(
@@ -101,7 +115,7 @@ struct InitialState : public BasicStateT<InitialState>
                            "not allowed");
                 return -1;
             },
-            [& config = machine.getConfig()](const int& property) -> int {
+            [&config = machine.getConfig()](const int& property) -> int {
                 return config.remainingInactivityTimeout.count();
             });
         iface->initialize();
@@ -130,7 +144,7 @@ struct InitialState : public BasicStateT<InitialState>
 
         // Common unmount
         iface->register_method(
-            "Unmount", [& machine = machine, waitCnt,
+            "Unmount", [&machine = machine, waitCnt,
                         timerPeriod](boost::asio::yield_context yield) {
                 LogMsg(Logger::Info, "[App]: Unmount called on ",
                        machine.getName());
@@ -206,7 +220,7 @@ struct InitialState : public BasicStateT<InitialState>
             using optional_fd = std::variant<int, unix_fd>;
 
             iface->register_method(
-                "Mount", [& machine = machine, handleMount](
+                "Mount", [&machine = machine, handleMount](
                              boost::asio::yield_context yield,
                              std::string imgUrl, bool rw, optional_fd fd) {
                     LogMsg(Logger::Info, "[App]: Mount called on ",
@@ -287,7 +301,7 @@ struct InitialState : public BasicStateT<InitialState>
         else
         {
             iface->register_method(
-                "Mount", [& machine = machine,
+                "Mount", [&machine = machine,
                           handleMount](boost::asio::yield_context yield) {
                     LogMsg(Logger::Info, "[App]: Mount called on ",
                            getObjectPath(machine), machine.getName());
