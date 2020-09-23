@@ -62,7 +62,7 @@ std::unique_ptr<BasicState> ActivatingState::activateProxyMode()
                      "/usr/sbin/nbd-client", machine.getConfig().nbdDevice));
 
     if (!process->spawn(Configuration::MountPoint::toArgs(machine.getConfig()),
-                        [& machine = machine](int exitCode, bool isReady) {
+                        [&machine = machine](int exitCode, bool isReady) {
                             LogMsg(Logger::Info, machine.getName(),
                                    " process ended.");
                             machine.getExitCode() = exitCode;
@@ -197,7 +197,7 @@ std::unique_ptr<resource::Process>
     // Insert extra params
     args.insert(args.end(), params.begin(), params.end());
 
-    if (!process->spawn(args, [& machine = machine, secret = std::move(secret)](
+    if (!process->spawn(args, [&machine = machine, secret = std::move(secret)](
                                   int exitCode, bool isReady) {
             LogMsg(Logger::Info, machine.getName(), " process ended.");
             machine.getExitCode() = exitCode;
@@ -233,7 +233,12 @@ std::unique_ptr<resource::Process>
                                        // ... to mount http resource at url
                                        "url=" + url,
                                        // custom OpenBMC path for CA
-                                       "capath=/etc/ssl/certs/authority"};
+                                       "capath=/etc/ssl/certs/authority",
+                                       "ssl-version=tlsv1.1",
+                                       "ssl-cipher-list=\"!AES256-GCM-SHA384:"
+                                       "!AES128-GCM-SHA256:"
+                                       "!AES256-SHA256:"
+                                       "!AES128-SHA256"};
 
     // Authenticate if needed
     if (machine.getTarget()->credentials)
