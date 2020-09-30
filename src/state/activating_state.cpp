@@ -233,12 +233,7 @@ std::unique_ptr<resource::Process>
                                        // ... to mount http resource at url
                                        "url=" + url,
                                        // custom OpenBMC path for CA
-                                       "capath=/etc/ssl/certs/authority",
-                                       "ssl-version=tlsv1.1",
-                                       "ssl-cipher-list=\"!AES256-GCM-SHA384:"
-                                       "!AES128-GCM-SHA256:"
-                                       "!AES256-SHA256:"
-                                       "!AES128-SHA256"};
+                                       "capath=/etc/ssl/certs/authority"};
 
     // Authenticate if needed
     if (machine.getTarget()->credentials)
