@@ -105,6 +105,16 @@ struct InitialState : public BasicStateT<InitialState>
                 return std::string();
             });
         iface->register_property(
+            "WriteProtected", bool(true),
+            [](const bool& req, bool& property) { return 0; },
+            [&target = machine.getTarget()](const bool& property) {
+                if (target)
+                {
+                    return target->rw;
+                }
+                return bool(true);
+            });
+        iface->register_property(
             "Timeout", machine.getConfig().timeout.value_or(
                            Configuration::MountPoint::defaultTimeout));
         iface->register_property(
