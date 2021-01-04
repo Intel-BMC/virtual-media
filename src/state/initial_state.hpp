@@ -110,7 +110,7 @@ struct InitialState : public BasicStateT<InitialState>
             [&target = machine.getTarget()](const bool& property) {
                 if (target)
                 {
-                    return target->rw;
+                    return !target->rw;
                 }
                 return bool(true);
             });
