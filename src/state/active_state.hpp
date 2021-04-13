@@ -83,6 +83,12 @@ struct ActiveState : public BasicStateT<ActiveState>
                                                    std::move(gadget));
     }
 
+    [[noreturn]] std::unique_ptr<BasicState> handleEvent(MountEvent event)
+    {
+        LogMsg(Logger::Error, "Invalid event: ", event.eventName);
+        throw sdbusplus::exception::SdBusError(EPERM, "Operation not permitted in active state");
+    }
+
     template <class AnyEvent>
     [[noreturn]] std::unique_ptr<BasicState> handleEvent(AnyEvent event)
     {

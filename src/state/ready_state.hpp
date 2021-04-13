@@ -47,6 +47,12 @@ struct ReadyState : public BasicStateT<ReadyState>
         return std::make_unique<ActivatingState>(machine);
     }
 
+    [[noreturn]] std::unique_ptr<BasicState> handleEvent(UnmountEvent event)
+    {
+        LogMsg(Logger::Error, "Invalid event: ", event.eventName);
+        throw sdbusplus::exception::SdBusError(EPERM, "Operation not permitted in ready state");
+    }
+
     template <class AnyEvent>
     std::unique_ptr<BasicState> handleEvent(AnyEvent event)
     {
