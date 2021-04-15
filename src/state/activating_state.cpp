@@ -11,6 +11,7 @@
 #include <boost/container/flat_map.hpp>
 #include <boost/container/flat_set.hpp>
 #include <boost/process.hpp>
+#include <boost/system/detail/error_code.hpp>
 #include <filesystem>
 #include <iostream>
 #include <memory>
@@ -81,6 +82,36 @@ std::unique_ptr<BasicState> ActivatingState::activateLegacyMode()
     LogMsg(Logger::Debug, machine.getName(),
            " Mount requested on address: ", machine.getTarget()->imgUrl,
            " ; RW: ", machine.getTarget()->rw);
+
+    std::filesystem::path socketPath(machine.getConfig().unixSocket);
+    if (!std::filesystem::exists(socketPath.parent_path()))
+    {
+        LogMsg(Logger::Debug, machine.getName(),
+               " Parent path for the socket does not exist, ",
+               socketPath.parent_path());
+
+        std::error_code errc;
+        std::filesystem::create_directories(socketPath.parent_path(), errc);
+        if (errc)
+        {
+            LogMsg(Logger::Debug, machine.getName(),
+                   " Failed to create parent directory for socket", errc);
+            return std::make_unique<ReadyState>(
+                machine, static_cast<std::errc>(errc.value()),
+                "Failed to create parent directory for socket");
+        }
+        std::filesystem::permissions(socketPath.parent_path(),
+                                     std::filesystem::perms::owner_all, errc);
+        if (errc)
+        {
+            LogMsg(Logger::Debug, machine.getName(),
+                   " Failed to set parent directory permissions for socket",
+                   errc);
+            return std::make_unique<ReadyState>(
+                machine, static_cast<std::errc>(errc.value()),
+                "Failed to set parent permissions directory for socket");
+        }
+    }
 
     if (isCifsUrl(machine.getTarget()->imgUrl))
     {
