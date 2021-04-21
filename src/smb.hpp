@@ -67,7 +67,6 @@ class SmbShare
                          const std::string& version)
     {
         options += "," + version;
-        LogMsg(Logger::Debug, "Mounting with options: ", options);
 
         auto ec = ::mount(remote.c_str(), mountDir.c_str(), "cifs", 0,
                           options.c_str());
