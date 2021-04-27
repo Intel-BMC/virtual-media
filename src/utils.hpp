@@ -46,13 +46,39 @@ class Credentials
         return passBuf;
     }
 
+    void escapeCommas()
+    {
+        if (!commasEscaped)
+        {
+            escapeComma(userBuf);
+            escapeComma(passBuf);
+            commasEscaped = true;
+        }
+    }
+
   private:
     Credentials() = delete;
     Credentials(const Credentials&) = delete;
     Credentials& operator=(const Credentials&) = delete;
 
+    /* escape ',' (coma) by ',,' */
+    void escapeComma(std::string& s)
+    {
+        std::string temp;
+        std::for_each(s.begin(), s.end(), [&temp](const auto& c) {
+            *std::back_inserter(temp) = c;
+            if (c == ',')
+            {
+                *std::back_inserter(temp) = c;
+            }
+        });
+        std::swap(s, temp);
+        secureCleanup(temp);
+    }
+
     std::string userBuf;
     std::string passBuf;
+    bool commasEscaped{false};
 };
 
 class CredentialsProvider
@@ -81,6 +107,11 @@ class CredentialsProvider
     CredentialsProvider(std::string&& user, std::string&& password) :
         credentials(std::move(user), std::move(password))
     {
+    }
+
+    void escapeCommas()
+    {
+        credentials.escapeCommas();
     }
 
     const std::string& user()
