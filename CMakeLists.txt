@@ -25,62 +25,33 @@ option(LEGACY_MODE_ENABLED
 if(NOT ${YOCTO_DEPENDENCIES})
   include(ExternalProject)
 
-  externalproject_add(sdbusplus-project
-                      PREFIX
-                      ${CMAKE_BINARY_DIR}/sdbusplus-project
-                      GIT_REPOSITORY
-                      https://github.com/openbmc/sdbusplus.git
-                      GIT_TAG
-                      c08cf5283b80a071d19506d9a462f6c69e1797f1
-                      SOURCE_DIR
-                      ${CMAKE_BINARY_DIR}/sdbusplus-src
-                      BINARY_DIR
-                      ${CMAKE_BINARY_DIR}/sdbusplus-build
-                      CONFIGURE_COMMAND
-                      ""
-                      BUILD_COMMAND
-                      cd
-                      ${CMAKE_BINARY_DIR}/sdbusplus-src
-                      &&
-                      ./bootstrap.sh
-                      &&
-                      ./configure
-                      --enable-transaction
-                      &&
-                      make
-                      -j
-                      libsdbusplus.la
-                      INSTALL_COMMAND
-                      ""
-                      LOG_DOWNLOAD
-                      ON
-                      UPDATE_COMMAND
-                      "")
+  ExternalProject_Add(
+    sdbusplus-project
+    PREFIX ${CMAKE_BINARY_DIR}/sdbusplus-project
+    GIT_REPOSITORY https://github.com/openbmc/sdbusplus.git
+    GIT_TAG c08cf5283b80a071d19506d9a462f6c69e1797f1
+    SOURCE_DIR ${CMAKE_BINARY_DIR}/sdbusplus-src
+    BINARY_DIR ${CMAKE_BINARY_DIR}/sdbusplus-build
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/sdbusplus-src && ./bootstrap.sh &&
+                  ./configure --enable-transaction && make -j libsdbusplus.la
+    INSTALL_COMMAND ""
+    LOG_DOWNLOAD ON
+    UPDATE_COMMAND "")
 
-  externalproject_add(nlohmann-json
-                      GIT_REPOSITORY
-                      "https://github.com/nlohmann/json.git"
-                      GIT_TAG
-                      aafad2be1f3cd259a1e79d2f6fcf267d1ede9ec7
-                      SOURCE_DIR
-                      "${CMAKE_BINARY_DIR}/nlohmann-json-src"
-                      BINARY_DIR
-                      "${CMAKE_BINARY_DIR}/nlohmann-json-build"
-                      CONFIGURE_COMMAND
-                      ""
-                      BUILD_COMMAND
-                      ""
-                      INSTALL_COMMAND
-                      mkdir
-                      -p
-                      "${CMAKE_BINARY_DIR}/prefix/include/nlohmann"
-                      &&
-                      cp
-                      -r
-                      "${CMAKE_BINARY_DIR}/nlohmann-json-src/include/nlohmann"
-                      "${CMAKE_BINARY_DIR}/prefix/include"
-                      UPDATE_COMMAND
-                      "")
+  ExternalProject_Add(
+    nlohmann-json
+    GIT_REPOSITORY "https://github.com/nlohmann/json.git"
+    GIT_TAG aafad2be1f3cd259a1e79d2f6fcf267d1ede9ec7
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/nlohmann-json-src"
+    BINARY_DIR "${CMAKE_BINARY_DIR}/nlohmann-json-build"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND
+      mkdir -p "${CMAKE_BINARY_DIR}/prefix/include/nlohmann" && cp -r
+      "${CMAKE_BINARY_DIR}/nlohmann-json-src/include/nlohmann"
+      "${CMAKE_BINARY_DIR}/prefix/include"
+    UPDATE_COMMAND "")
 
   include_directories(${CMAKE_BINARY_DIR}/prefix/include)
   include_directories(${CMAKE_BINARY_DIR}/sdbusplus-src)
@@ -135,20 +106,22 @@ target_link_libraries(virtual-media -lboost_context)
 install(TARGETS virtual-media DESTINATION sbin)
 
 # Options based compile definitions
-target_compile_definitions(virtual-media
-                           PRIVATE
-                           $<$<BOOL:${VM_USE_VALGRIND}>:
-                           -DBOOST_USE_VALGRIND>
-                           $<$<BOOL:${VM_VERBOSE_NBDKIT_LOGS}>:
-                           -DVM_VERBOSE_NBDKIT_LOGS>
-                           $<$<BOOL:${LEGACY_MODE_ENABLED}>:
-                           -DLEGACY_MODE_ENABLED>
-                           $<$<BOOL:${CUSTOM_DBUS_PATH}>:
-                           -DCUSTOM_DBUS_PATH="${CUSTOM_DBUS_PATH}">)
+target_compile_definitions(
+  virtual-media
+  PRIVATE $<$<BOOL:${VM_USE_VALGRIND}>:
+          -DBOOST_USE_VALGRIND>
+          $<$<BOOL:${VM_VERBOSE_NBDKIT_LOGS}>:
+          -DVM_VERBOSE_NBDKIT_LOGS>
+          $<$<BOOL:${LEGACY_MODE_ENABLED}>:
+          -DLEGACY_MODE_ENABLED>
+          $<$<BOOL:${CUSTOM_DBUS_PATH}>:
+          -DCUSTOM_DBUS_PATH="${CUSTOM_DBUS_PATH}">)
 
 if(CMAKE_INSTALL_SYSCONFDIR)
-  install(FILES ${PROJECT_SOURCE_DIR}/virtual-media.json DESTINATION
-                ${CMAKE_INSTALL_SYSCONFDIR})
+  install(FILES ${PROJECT_SOURCE_DIR}/virtual-media.json
+          DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 endif()
 install(FILES ${PROJECT_SOURCE_DIR}/xyz.openbmc_project.VirtualMedia.service
-              DESTINATION /lib/systemd/system/)
+        DESTINATION /lib/systemd/system/)
+install(FILES ${PROJECT_SOURCE_DIR}/tmpfiles.d/virtual-media.conf
+        DESTINATION /etc/tmpfiles.d/)
