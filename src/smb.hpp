@@ -34,7 +34,6 @@ class SmbShare
         }
         else
         {
-            LogMsg(Logger::Info, "Authenticating as ", credentials->user());
             credentials->escapeCommas();
             credentialsOpt = "user=" + credentials->user() +
                              ",password=" + credentials->password();

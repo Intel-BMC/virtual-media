@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 
-#define LOG_LEVEL Debug
+#define LOG_LEVEL Info
 
 namespace Logger
 {

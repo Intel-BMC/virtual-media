@@ -198,7 +198,6 @@ struct InitialState : public BasicStateT<InitialState>
                     {
                         if (s->error)
                         {
-                            LogMsg(Logger::Error, s->error->message.c_str());
                             throw sdbusplus::exception::SdBusError(
                                 static_cast<int>(s->error->code),
                                 s->error->message.c_str());
@@ -208,7 +207,7 @@ struct InitialState : public BasicStateT<InitialState>
                     }
                     if (machine.getState().get_if<ActiveState>())
                     {
-                        LogMsg(Logger::Debug, "[App] Mount ok");
+                        LogMsg(Logger::Info, "[App] Mount ok");
                         return true;
                     }
                     boost::system::error_code ignored_ec;
@@ -284,7 +283,7 @@ struct InitialState : public BasicStateT<InitialState>
                         {
                             machine.getTarget()->credentials.reset();
                         }
-                        LogMsg(Logger::Debug, "[App]: mount completed ", ret);
+                        LogMsg(Logger::Info, "[App]: mount completed ", ret);
                         return ret;
                     }
                     catch (const std::exception& e)

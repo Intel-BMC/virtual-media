@@ -136,11 +136,11 @@ class NBDDevice
         }
         if (ioctl(fd, NBD_DISCONNECT) < 0)
         {
-            LogMsg(Logger::Debug, "Ioctl failed: \n");
+            LogMsg(Logger::Info, "Ioctl failed: \n");
         }
         if (ioctl(fd, NBD_CLEAR_SOCK) < 0)
         {
-            LogMsg(Logger::Debug, "Ioctl failed: \n");
+            LogMsg(Logger::Info, "Ioctl failed: \n");
         }
         close(fd);
     }
@@ -359,7 +359,7 @@ class Process : public std::enable_shared_from_this<Process>
     bool spawn(const std::vector<std::string>& args, ExitCb&& onExit)
     {
         std::error_code ec;
-        LogMsg(Logger::Info, "[Process]: Spawning ", app, " (", args, ")");
+        LogMsg(Logger::Debug, "[Process]: Spawning ", app, " (", args, ")");
         child = boost::process::child(
             app, boost::process::args(args),
             (boost::process::std_out & boost::process::std_err) > pipe, ec,
@@ -388,7 +388,7 @@ class Process : public std::enable_shared_from_this<Process>
                 while (lineBegin != line.end())
                 {
                     auto lineEnd = find(lineBegin, line.end(), '\n');
-                    LogMsg(Logger::Debug, "[Process]: (", name, ") ",
+                    LogMsg(Logger::Info, "[Process]: (", name, ") ",
                            std::string(lineBegin, lineEnd));
                     if (lineEnd == line.end())
                     {
@@ -400,7 +400,7 @@ class Process : public std::enable_shared_from_this<Process>
                 buffer.consume(x);
                 if (bec)
                 {
-                    LogMsg(Logger::Debug, "[Process]: (", name,
+                    LogMsg(Logger::Info, "[Process]: (", name,
                            ") Loop Error: ", bec);
                     break;
                 }

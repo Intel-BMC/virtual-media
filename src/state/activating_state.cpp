@@ -79,14 +79,14 @@ std::unique_ptr<BasicState> ActivatingState::activateProxyMode()
 
 std::unique_ptr<BasicState> ActivatingState::activateLegacyMode()
 {
-    LogMsg(Logger::Debug, machine.getName(),
+    LogMsg(Logger::Info, machine.getName(),
            " Mount requested on address: ", machine.getTarget()->imgUrl,
            " ; RW: ", machine.getTarget()->rw);
 
     std::filesystem::path socketPath(machine.getConfig().unixSocket);
     if (!std::filesystem::exists(socketPath.parent_path()))
     {
-        LogMsg(Logger::Debug, machine.getName(),
+        LogMsg(Logger::Info, machine.getName(),
                " Parent path for the socket does not exist, ",
                socketPath.parent_path());
 
@@ -94,7 +94,7 @@ std::unique_ptr<BasicState> ActivatingState::activateLegacyMode()
         std::filesystem::create_directories(socketPath.parent_path(), errc);
         if (errc)
         {
-            LogMsg(Logger::Debug, machine.getName(),
+            LogMsg(Logger::Error, machine.getName(),
                    " Failed to create parent directory for socket", errc);
             return std::make_unique<ReadyState>(
                 machine, static_cast<std::errc>(errc.value()),
@@ -104,7 +104,7 @@ std::unique_ptr<BasicState> ActivatingState::activateLegacyMode()
                                      std::filesystem::perms::owner_all, errc);
         if (errc)
         {
-            LogMsg(Logger::Debug, machine.getName(),
+            LogMsg(Logger::Info, machine.getName(),
                    " Failed to set parent directory permissions for socket",
                    errc);
             return std::make_unique<ReadyState>(
@@ -138,7 +138,7 @@ std::unique_ptr<BasicState> ActivatingState::mountSmbShare()
         auto remoteParent = "/" + remote.parent_path().string();
         auto localFile = mountDir->getPath() / remote.filename();
 
-        LogMsg(Logger::Debug, machine.getName(), " Remote name: ", remote,
+        LogMsg(Logger::Info, machine.getName(), " Remote name: ", remote,
                "\n Remote parent: ", remoteParent,
                "\n Local file: ", localFile);
 

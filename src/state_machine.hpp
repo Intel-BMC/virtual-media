@@ -52,8 +52,7 @@ struct MountPointStateMachine : public interfaces::MountPointStateMachine
     void changeState(std::unique_ptr<BasicState> newState)
     {
         state = std::move(newState);
-        LogMsg(Logger::Debug, name, " state changed to ",
-               state->getStateName());
+        LogMsg(Logger::Info, name, " state changed to ", state->getStateName());
         if (newState = state->onEnter())
         {
             changeState(std::move(newState));
@@ -63,7 +62,7 @@ struct MountPointStateMachine : public interfaces::MountPointStateMachine
     template <class EventT>
     void emitEvent(EventT&& event)
     {
-        LogMsg(Logger::Debug, name, " received ", event.eventName, " while in ",
+        LogMsg(Logger::Info, name, " received ", event.eventName, " while in ",
                state->getStateName());
 
         if (auto newState = state->handleEvent(std::move(event)))
