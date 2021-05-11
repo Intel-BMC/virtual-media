@@ -1,13 +1,13 @@
 #pragma once
 
+#include <algorithm>
 #include <boost/process/async_pipe.hpp>
 #include <boost/type_traits/has_dereference.hpp>
-#include <cstring>
 #include <filesystem>
-#include <fstream>
 #include <memory>
 #include <sdbusplus/asio/object_server.hpp>
 #include <string>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -50,7 +50,6 @@ class Credentials
     {
         if (!commasEscaped)
         {
-            escapeComma(userBuf);
             escapeComma(passBuf);
             commasEscaped = true;
         }

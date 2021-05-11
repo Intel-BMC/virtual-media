@@ -7,6 +7,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <string>
 
 namespace fs = std::filesystem;
 
@@ -34,6 +35,12 @@ class SmbShare
         }
         else
         {
+            if (!validateUsername(credentials->user()))
+            {
+                LogMsg(Logger::Error,
+                       "Username for CIFS share can't contain ',' character");
+                return false;
+            }
             credentials->escapeCommas();
             credentialsOpt = "user=" + credentials->user() +
                              ",password=" + credentials->password();
@@ -62,6 +69,12 @@ class SmbShare
 
   private:
     std::string mountDir;
+
+    /* Check if username does not contain comma (,) character */
+    bool validateUsername(const std::string& username)
+    {
+        return username.find(',') == std::string::npos;
+    }
 
     int mountWithSmbVers(const fs::path& remote, std::string options,
                          const std::string& version)
