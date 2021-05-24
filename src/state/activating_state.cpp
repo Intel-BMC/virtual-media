@@ -269,7 +269,8 @@ std::unique_ptr<resource::Process>
                                        "followlocation=false",
                                        "ssl-cipher-list=ALL:!eNULL:!aNULL:"
                                        "!AES256-GCM-SHA384:!AES128-GCM-SHA256:"
-                                       "!AES256-SHA256:!AES128-SHA256"};
+                                       "!AES256-SHA256:!AES128-SHA256:"
+                                       "!ECDHE-RSA-CHACHA20-POLY1305"};
 
     // Authenticate if needed
     if (machine.getTarget()->credentials)
