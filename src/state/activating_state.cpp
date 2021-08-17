@@ -267,10 +267,11 @@ std::unique_ptr<resource::Process>
                                        "capath=/etc/ssl/certs/authority",
                                        "ssl-version=tlsv1.2",
                                        "followlocation=false",
-                                       "ssl-cipher-list=ALL:!eNULL:!aNULL:"
-                                       "!AES256-GCM-SHA384:!AES128-GCM-SHA256:"
-                                       "!AES256-SHA256:!AES128-SHA256:"
-                                       "!ECDHE-RSA-CHACHA20-POLY1305"};
+                                       "ssl-cipher-list="
+                                       "ECDHE-RSA-AES256-GCM-SHA384:"
+                                       "ECDHE-ECDSA-AES256-GCM-SHA384",
+                                       "tls13-ciphers="
+                                       "TLS_AES_256_GCM_SHA384"};
 
     // Authenticate if needed
     if (machine.getTarget()->credentials)
