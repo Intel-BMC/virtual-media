@@ -259,19 +259,19 @@ std::unique_ptr<resource::Process>
                                  const std::string& url)
 {
     std::unique_ptr<utils::VolatileFile> secret;
-    std::vector<std::string> params = {// Use curl plugin ...
-                                       "curl",
-                                       // ... to mount http resource at url
-                                       "url=" + url,
-                                       // custom OpenBMC path for CA
-                                       "capath=/etc/ssl/certs/authority",
-                                       "ssl-version=tlsv1.2",
-                                       "followlocation=false",
-                                       "ssl-cipher-list="
-                                       "ECDHE-RSA-AES256-GCM-SHA384:"
-                                       "ECDHE-ECDSA-AES256-GCM-SHA384",
-                                       "tls13-ciphers="
-                                       "TLS_AES_256_GCM_SHA384"};
+    std::vector<std::string> params = {
+        // Use curl plugin ...
+        "curl",
+        // ... to mount http resource at url
+        "url=" + url,
+        // custom OpenBMC path for CA
+        "cainfo=", "capath=/etc/ssl/certs/authority", "ssl-version=tlsv1.2",
+        "followlocation=false",
+        "ssl-cipher-list="
+        "ECDHE-RSA-AES256-GCM-SHA384:"
+        "ECDHE-ECDSA-AES256-GCM-SHA384",
+        "tls13-ciphers="
+        "TLS_AES_256_GCM_SHA384"};
 
     // Authenticate if needed
     if (machine.getTarget()->credentials)
