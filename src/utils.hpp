@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unistd.h>
+
 #include <algorithm>
 #include <boost/process/async_pipe.hpp>
 #include <boost/type_traits/has_dereference.hpp>
@@ -163,7 +165,7 @@ class NamedPipe
         return unix_fd{impl.native_sink()};
     }
 
-    const std::string& file()
+    const std::string& file() const
     {
         return name;
     }
@@ -202,12 +204,12 @@ class VolatileFile
     using Buffer = CredentialsProvider::SecureBuffer;
 
   public:
-    VolatileFile(Buffer&& contents) :
-        filePath(fs::temp_directory_path() / std::tmpnam(nullptr)),
-        size(contents->size())
+    VolatileFile(Buffer&& contents) : size(contents->size())
     {
         auto data = std::move(contents);
-        create(filePath, data);
+        filePath = fs::temp_directory_path().c_str();
+        filePath.append("/VM-XXXXXX");
+        create(data);
     }
 
     ~VolatileFile()
@@ -221,19 +223,40 @@ class VolatileFile
         return filePath;
     }
 
-  private:
-    static void create(const std::string& filePath, const Buffer& data)
+    class FileObject
     {
-        std::ofstream file(filePath);
-        limitPermissionsToOwnerOnly(filePath);
-        file.write(data->data(), data->size());
-    }
+      public:
+        explicit FileObject(int fd) : fd(fd){};
+        FileObject() = delete;
+        FileObject(const FileObject&) = delete;
+        FileObject& operator=(const FileObject&) = delete;
 
-    static void limitPermissionsToOwnerOnly(const std::string& filePath)
+        ssize_t write(void* data, ssize_t nw)
+        {
+            return ::write(fd, data, nw);
+        }
+
+        ~FileObject()
+        {
+            close(fd);
+        }
+
+      private:
+        int fd;
+    };
+
+  private:
+    void create(const Buffer& data)
     {
-        fs::permissions(filePath,
-                        fs::perms::owner_read | fs::perms::owner_write,
-                        fs::perm_options::replace);
+        auto fd = mkstemp(filePath.data());
+
+        FileObject file(fd);
+        if (file.write(data->data(), data->size()) !=
+            static_cast<ssize_t>(data->size()))
+        {
+            throw sdbusplus::exception::SdBusError(
+                EIO, "I/O error on temporary file");
+        }
     }
 
     void purgeFileContents()
@@ -254,7 +277,7 @@ class VolatileFile
         }
     }
 
-    const std::string filePath;
+    std::string filePath;
     const std::size_t size;
 };
 } // namespace utils
