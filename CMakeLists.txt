@@ -26,10 +26,26 @@ if(NOT ${YOCTO_DEPENDENCIES})
   include(ExternalProject)
 
   ExternalProject_Add(
+    Boost
+    URL "https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2"
+    URL_MD5 "33334dd7f862e8ac9fe1cc7c6584fb6d"
+    SOURCE_DIR ${CMAKE_BINARY_DIR}/src/boost
+    BINARY_DIR ${CMAKE_BINARY_DIR}/libs/boost
+    CONFIGURE_COMMAND cd <SOURCE_DIR> && ./bootstrap.sh
+    BUILD_COMMAND cd <SOURCE_DIR> && ./b2 --exec-prefix=<BINARY_DIR>
+                  --prefix=<BINARY_DIR> --with-system --with-coroutine install
+    INSTALL_COMMAND ""
+    UPDATE_COMMAND "")
+
+  set(CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR}/libs/boost/ ${CMAKE_PREFIX_PATH})
+  include_directories(SYSTEM ${CMAKE_BINARY_DIR}/libs/boost/include)
+  link_directories(SYSTEM ${CMAKE_BINARY_DIR}/libs/boost/lib)
+
+  ExternalProject_Add(
     sdbusplus-project
     PREFIX ${CMAKE_BINARY_DIR}/sdbusplus-project
     GIT_REPOSITORY https://github.com/openbmc/sdbusplus.git
-    GIT_TAG c08cf5283b80a071d19506d9a462f6c69e1797f1
+    GIT_TAG afe80cf2e5dc4aefe3b041adeb0230e61929bf12
     SOURCE_DIR ${CMAKE_BINARY_DIR}/sdbusplus-src
     BINARY_DIR ${CMAKE_BINARY_DIR}/sdbusplus-build
     CONFIGURE_COMMAND ""
@@ -38,6 +54,9 @@ if(NOT ${YOCTO_DEPENDENCIES})
     INSTALL_COMMAND ""
     LOG_DOWNLOAD ON
     UPDATE_COMMAND "")
+
+  include_directories(${CMAKE_BINARY_DIR}/sdbusplus-src)
+  link_directories(${CMAKE_BINARY_DIR}/sdbusplus-src/.libs)
 
   ExternalProject_Add(
     nlohmann-json
@@ -54,29 +73,26 @@ if(NOT ${YOCTO_DEPENDENCIES})
     UPDATE_COMMAND "")
 
   include_directories(${CMAKE_BINARY_DIR}/prefix/include)
-  include_directories(${CMAKE_BINARY_DIR}/sdbusplus-src)
 
-  link_directories(${CMAKE_BINARY_DIR}/sdbusplus-src/.libs)
+else()
+  # Include Boost library. This allows specify exact version of BOOST to be
+  # used, especially important while using valgrind, to point BOOST that is
+  # compiled with valgrind support
+  if(${BOOST_VERSION})
+    find_package(Boost ${BOOST_VERSION} EXACT)
+  else()
+    find_package(Boost 1.69 REQUIRED COMPONENTS coroutine context)
+  endif()
+  message("++ Using Boost version: " ${Boost_VERSION})
 
+  include_directories(${Boost_INCLUDE_DIRS})
+  link_directories(${Boost_LIBRARY_DIRS})
 endif()
 
 # Include UDEV library
 find_package(udev REQUIRED)
 include_directories(${UDEV_INCLUDE_DIRS})
 link_directories(${UDEV_LIBRARIES})
-
-# Include Boost library This allows specify exact version of BOOST to be used,
-# especially important while using valgrind, to point BOOST that is compiled
-# with valgrind support
-if(${BOOST_VERSION})
-  find_package(Boost ${BOOST_VERSION} EXACT)
-else()
-  find_package(Boost 1.69 REQUIRED)
-endif()
-message("++ Using Boost version: " ${Boost_VERSION})
-
-include_directories(${Boost_INCLUDE_DIRS})
-link_directories(${Boost_LIBRARY_DIRS})
 
 # Boost related definitions
 add_definitions(-DBOOST_COROUTINES_NO_DEPRECATION_WARNING)
