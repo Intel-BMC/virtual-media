@@ -25,6 +25,10 @@ struct InitialState : public BasicStateT<InitialState>
                                                 "Legacy mode is not supported");
         }
 #endif
+        if (isLegacy)
+        {
+            cleanUpMountPoint();
+        }
         addMountPointInterface(event);
         addProcessInterface(event);
         addServiceInterface(event, isLegacy);
@@ -77,6 +81,47 @@ struct InitialState : public BasicStateT<InitialState>
                 return machine.getExitCode();
             });
         processIface->initialize();
+    }
+
+    void cleanUpMountPoint()
+    {
+        if (UsbGadget::isConfigured(std::string(machine.getName())))
+        {
+            int result = UsbGadget::configure(std::string(machine.getName()),
+                                              machine.getConfig().nbdDevice,
+                                              StateChange::removed);
+            LogMsg(Logger::Info, "UsbGadget cleanup");
+
+            if (result != 0)
+            {
+                LogMsg(Logger::Critical, machine.getName(),
+                       "Some serious failure happened! Cleanup failed.");
+            }
+        }
+
+        auto localFile = std::filesystem::temp_directory_path() /
+                         std::string(machine.getName());
+
+        if (fs::exists(localFile))
+        {
+            if (0 == ::umount2(localFile.c_str(), MNT_FORCE))
+            {
+                LogMsg(Logger::Info, "Cleanup directory ", localFile);
+                std::error_code ec;
+                if (!std::filesystem::remove(localFile, ec))
+                {
+                    LogMsg(Logger::Error, ec,
+                           "Cleanup failed - unable to remove directory ",
+                           localFile);
+                }
+            }
+            else
+            {
+                LogMsg(Logger::Error,
+                       "Cleanup failed - unable to unmount directory ",
+                       localFile);
+            }
+        }
     }
 
     void addMountPointInterface(const RegisterDbusEvent& event)

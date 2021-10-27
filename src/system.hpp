@@ -490,6 +490,13 @@ struct UsbGadget
         return true;
     }
 
+    static const std::string getGadgetDirPrefix()
+    {
+        const std::string gadgetDirPrefix =
+            "/sys/kernel/config/usb_gadget/mass-storage-";
+        return gadgetDirPrefix;
+    }
+
   public:
     static int32_t configure(const std::string& name, const NBDDevice& nbd,
                              StateChange change, const bool rw = false)
@@ -511,8 +518,7 @@ struct UsbGadget
             return -1;
         }
 
-        const fs::path gadgetDir =
-            "/sys/kernel/config/usb_gadget/mass-storage-" + name;
+        const fs::path gadgetDir = getGadgetDirPrefix() + name;
         const fs::path funcMassStorageDir =
             gadgetDir / "functions/mass_storage.usb0";
         const fs::path stringsDir = gadgetDir / "strings/0x409";
@@ -595,9 +601,8 @@ struct UsbGadget
 
     static std::optional<std::string> getStats(const std::string& name)
     {
-        const fs::path statsPath =
-            "/sys/kernel/config/usb_gadget/mass-storage-" + name +
-            "/functions/mass_storage.usb0/lun.0/stats";
+        const fs::path statsPath = getGadgetDirPrefix() + name +
+                                   "/functions/mass_storage.usb0/lun.0/stats";
 
         std::ifstream ifs(statsPath);
         if (!ifs.is_open())
@@ -608,5 +613,17 @@ struct UsbGadget
 
         return std::string{std::istreambuf_iterator<char>(ifs),
                            std::istreambuf_iterator<char>()};
+    }
+
+    static bool isConfigured(const std::string& name)
+    {
+        const fs::path gadgetDir = getGadgetDirPrefix() + name;
+
+        if (!fs::exists(gadgetDir))
+        {
+            return false;
+        }
+
+        return true;
     }
 };
