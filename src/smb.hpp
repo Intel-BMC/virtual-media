@@ -23,7 +23,7 @@ class SmbShare
     {
         LogMsg(Logger::Debug, "Trying to mount remote : ", remote);
 
-        const std::string params = "nolock,sec=ntlmsspi,seal";
+        const std::string params = "sec=ntlmsspi,seal";
         const std::string perm = rw ? "rw" : "ro";
         std::string options = params + "," + perm;
         std::string credentialsOpt;
@@ -31,7 +31,7 @@ class SmbShare
         if (!credentials)
         {
             LogMsg(Logger::Info, "Mounting as Guest");
-            credentialsOpt = "guest,user=OpenBmc";
+            credentialsOpt = "guest,username=OpenBmc";
         }
         else
         {
@@ -42,7 +42,7 @@ class SmbShare
                 return false;
             }
             credentials->escapeCommas();
-            credentialsOpt = "user=" + credentials->user() +
+            credentialsOpt = "username=" + credentials->user() +
                              ",password=" + credentials->password();
         }
         options += "," + credentialsOpt;
