@@ -2,6 +2,8 @@
 #include "basic_state.hpp"
 #include "ready_state.hpp"
 
+#include <system_error>
+
 struct InitialState : public BasicStateT<InitialState>
 {
     static std::string_view stateName()
@@ -70,14 +72,15 @@ struct InitialState : public BasicStateT<InitialState>
 
         processIface->register_property(
             "Active", bool(false),
-            [](const bool& req, bool& property) { return 0; },
-            [&machine = machine](const bool& property) -> bool {
-                return machine.getState().get_if<ActiveState>();
-            });
+            []([[maybe_unused]] const bool& req,
+               [[maybe_unused]] bool& property) { return 0; },
+            [&machine = machine]([[maybe_unused]] const bool& property)
+                -> bool { return machine.getState().get_if<ActiveState>(); });
         processIface->register_property(
             "ExitCode", int32_t(0),
-            [](const int32_t& req, int32_t& property) { return 0; },
-            [&machine = machine](const int32_t& property) {
+            []([[maybe_unused]] const int32_t& req,
+               [[maybe_unused]] int32_t& property) { return 0; },
+            [&machine = machine]([[maybe_unused]] const int32_t& property) {
                 return machine.getExitCode();
             });
         processIface->initialize();
@@ -137,12 +140,14 @@ struct InitialState : public BasicStateT<InitialState>
         iface->register_property("Socket", machine.getConfig().unixSocket);
         iface->register_property(
             "ImageURL", std::string(),
-            [](const std::string& req, std::string& property) {
+            []([[maybe_unused]] const std::string& req,
+               [[maybe_unused]] std::string& property) {
                 throw sdbusplus::exception::SdBusError(
                     EPERM, "Setting ImageURL property is not allowed");
                 return -1;
             },
-            [&target = machine.getTarget()](const std::string& property) {
+            [&target = machine.getTarget()](
+                [[maybe_unused]] const std::string& property) {
                 if (target)
                 {
                     return target->imgUrl;
@@ -151,8 +156,10 @@ struct InitialState : public BasicStateT<InitialState>
             });
         iface->register_property(
             "WriteProtected", bool(true),
-            [](const bool& req, bool& property) { return 0; },
-            [&target = machine.getTarget()](const bool& property) {
+            []([[maybe_unused]] const bool& req,
+               [[maybe_unused]] bool& property) { return 0; },
+            [&target =
+                 machine.getTarget()]([[maybe_unused]] const bool& property) {
                 if (target)
                 {
                     return !target->rw;
@@ -164,13 +171,15 @@ struct InitialState : public BasicStateT<InitialState>
                            Configuration::MountPoint::defaultTimeout));
         iface->register_property(
             "RemainingInactivityTimeout", 0,
-            [](const int& req, int& property) {
+            []([[maybe_unused]] const int& req,
+               [[maybe_unused]] int& property) {
                 throw sdbusplus::exception::SdBusError(
                     EPERM, "Setting RemainingInactivityTimeout property is "
                            "not allowed");
                 return -1;
             },
-            [&config = machine.getConfig()](const int& property) -> int {
+            [&config = machine.getConfig()](
+                [[maybe_unused]] const int& property) -> int {
                 return config.remainingInactivityTimeout.count();
             });
         iface->initialize();
@@ -280,8 +289,8 @@ struct InitialState : public BasicStateT<InitialState>
                     LogMsg(Logger::Info, "[App]: Mount called on ",
                            getObjectPath(machine), machine.getName());
 
-                    interfaces::MountPointStateMachine::Target target = {imgUrl,
-                                                                         rw};
+                    interfaces::MountPointStateMachine::Target target = {
+                        imgUrl, rw, nullptr, nullptr};
 
                     if (std::holds_alternative<unix_fd>(fd))
                     {

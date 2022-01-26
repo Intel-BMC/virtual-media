@@ -48,8 +48,8 @@ std::unique_ptr<BasicState>
                                                std::move(gadget), event);
 }
 
-std::unique_ptr<BasicState>
-    ActivatingState::handleEvent(SubprocessStoppedEvent event)
+std::unique_ptr<BasicState> ActivatingState::handleEvent([
+    [maybe_unused]] SubprocessStoppedEvent event)
 {
     LogMsg(Logger::Error, "Process ended prematurely");
     return std::make_unique<ReadyState>(machine);
@@ -229,7 +229,7 @@ std::unique_ptr<resource::Process>
     args.insert(args.end(), params.begin(), params.end());
 
     if (!process->spawn(args, [&machine = machine, secret = std::move(secret)](
-                                  int exitCode, bool isReady) {
+                                  int exitCode, [[maybe_unused]] bool isReady) {
             LogMsg(Logger::Info, machine.getName(), " process ended.");
             machine.getExitCode() = exitCode;
             machine.emitSubprocessStoppedEvent();
@@ -278,11 +278,12 @@ std::unique_ptr<resource::Process>
     {
         // Pack password into buffer
         utils::CredentialsProvider::SecureBuffer buff =
-            machine.getTarget()->credentials->pack([](const std::string& user,
-                                                      const std::string& pass,
-                                                      std::vector<char>& buff) {
-                std::copy(pass.begin(), pass.end(), std::back_inserter(buff));
-            });
+            machine.getTarget()->credentials->pack(
+                []([[maybe_unused]] const std::string& user,
+                   const std::string& pass, std::vector<char>& buff) {
+                    std::copy(pass.begin(), pass.end(),
+                              std::back_inserter(buff));
+                });
 
         // Prepare file to provide the password with
         secret = std::make_unique<utils::VolatileFile>(std::move(buff));
@@ -319,7 +320,7 @@ bool ActivatingState::getImagePathFromUrl(const std::string& urlScheme,
     }
     else
     {
-        LogMsg(Logger::Error, "Provied url does not match scheme");
+        LogMsg(Logger::Error, "Provided url does not match scheme");
         return false;
     }
 }

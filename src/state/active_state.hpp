@@ -45,7 +45,8 @@ struct ActiveState : public BasicStateT<ActiveState>
                 // unmount media & stop retriggering timer
                 boost::asio::spawn(
                     machine.getIoc(),
-                    [&machine = machine](boost::asio::yield_context yield) {
+                    [&machine = machine](
+                        [[maybe_unused]] boost::asio::yield_context yield) {
                         machine.emitUnmountEvent();
                     });
                 return;
@@ -77,7 +78,7 @@ struct ActiveState : public BasicStateT<ActiveState>
             machine, std::move(process), std::move(gadget), std::move(event));
     }
 
-    std::unique_ptr<BasicState> handleEvent(UnmountEvent event)
+    std::unique_ptr<BasicState> handleEvent([[maybe_unused]] UnmountEvent event)
     {
         return std::make_unique<DeactivatingState>(machine, std::move(process),
                                                    std::move(gadget));
@@ -86,7 +87,8 @@ struct ActiveState : public BasicStateT<ActiveState>
     [[noreturn]] std::unique_ptr<BasicState> handleEvent(MountEvent event)
     {
         LogMsg(Logger::Error, "Invalid event: ", event.eventName);
-        throw sdbusplus::exception::SdBusError(EPERM, "Operation not permitted in active state");
+        throw sdbusplus::exception::SdBusError(
+            EPERM, "Operation not permitted in active state");
     }
 
     template <class AnyEvent>

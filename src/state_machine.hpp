@@ -53,7 +53,7 @@ struct MountPointStateMachine : public interfaces::MountPointStateMachine
     {
         state = std::move(newState);
         LogMsg(Logger::Info, name, " state changed to ", state->getStateName());
-        if (newState = state->onEnter())
+        if ((newState = state->onEnter()))
         {
             changeState(std::move(newState));
         }

@@ -22,14 +22,12 @@ struct RegisterDbusEvent : public BasicEvent
         std::shared_ptr<sdbusplus::asio::connection> bus,
         std::shared_ptr<sdbusplus::asio::object_server> objServer) :
         BasicEvent(__FUNCTION__),
-        bus(bus), objServer(objServer),
-        emitMountEvent(std::move(emitMountEvent))
+        bus(bus), objServer(objServer)
     {
     }
 
     std::shared_ptr<sdbusplus::asio::connection> bus;
     std::shared_ptr<sdbusplus::asio::object_server> objServer;
-    std::function<void(void)> emitMountEvent;
 };
 
 struct MountEvent : public BasicEvent
