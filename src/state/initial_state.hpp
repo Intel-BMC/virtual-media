@@ -19,7 +19,7 @@ struct InitialState : public BasicStateT<InitialState>
         const bool isLegacy =
             (machine.getConfig().mode == Configuration::Mode::legacy);
 
-#if !LEGACY_MODE_ENABLED
+#ifndef LEGACY_MODE_ENABLED
         if (isLegacy)
         {
             return std::make_unique<ReadyState>(machine,
@@ -183,7 +183,8 @@ struct InitialState : public BasicStateT<InitialState>
             },
             [&config = machine.getConfig()](
                 [[maybe_unused]] const int& property) -> int {
-                return config.remainingInactivityTimeout.count();
+                return static_cast<int>(
+                    config.remainingInactivityTimeout.count());
             });
         iface->initialize();
     }

@@ -428,7 +428,7 @@ class Process : public std::enable_shared_from_this<Process>
                    " EC: ", child.exit_code(),
                    " Native: ", child.native_exit_code());
 
-            onExit(child.exit_code(), dev.isReady());
+            onExit(child.exit_code());
         });
         return true;
     }

@@ -20,7 +20,9 @@
 #include <sdbusplus/asio/object_server.hpp>
 
 ActivatingState::ActivatingState(interfaces::MountPointStateMachine& machine) :
-    BasicStateT(machine){};
+    BasicStateT(machine)
+{
+}
 
 std::unique_ptr<BasicState> ActivatingState::onEnter()
 {
@@ -63,7 +65,7 @@ std::unique_ptr<BasicState> ActivatingState::activateProxyMode()
                      "/usr/sbin/nbd-client", machine.getConfig().nbdDevice));
 
     if (!process->spawn(Configuration::MountPoint::toArgs(machine.getConfig()),
-                        [&machine = machine](int exitCode, bool isReady) {
+                        [&machine = machine](int exitCode) {
                             LogMsg(Logger::Info, machine.getName(),
                                    " process ended.");
                             machine.getExitCode() = exitCode;
@@ -117,7 +119,7 @@ std::unique_ptr<BasicState> ActivatingState::activateLegacyMode()
     {
         return mountSmbShare();
     }
-    else if (isHttpsUrl(machine.getTarget()->imgUrl))
+    if (isHttpsUrl(machine.getTarget()->imgUrl))
     {
         return mountHttpsShare();
     }
@@ -201,7 +203,7 @@ std::unique_ptr<resource::Process>
         }
     }
 
-    std::string nbd_client =
+    std::string nbdClient =
         "/usr/sbin/nbd-client " +
         boost::algorithm::join(
             Configuration::MountPoint::toArgs(machine.getConfig()), " ");
@@ -213,7 +215,7 @@ std::unique_ptr<resource::Process>
 
         // ... then connect nbd-client to served image
         "--run",
-        nbd_client,
+        nbdClient,
 
 #if VM_VERBOSE_NBDKIT_LOGS
         "--verbose", // swarm of debug logs - only for brave souls
@@ -222,14 +224,14 @@ std::unique_ptr<resource::Process>
 
     if (!machine.getTarget()->rw)
     {
-        args.push_back("--readonly");
+        args.emplace_back("--readonly");
     }
 
     // Insert extra params
     args.insert(args.end(), params.begin(), params.end());
 
-    if (!process->spawn(args, [&machine = machine, secret = std::move(secret)](
-                                  int exitCode, [[maybe_unused]] bool isReady) {
+    if (!process->spawn(args, [&machine = machine,
+                               secret = std::move(secret)](int exitCode) {
             LogMsg(Logger::Info, machine.getName(), " process ended.");
             machine.getExitCode() = exitCode;
             machine.emitSubprocessStoppedEvent();
@@ -312,17 +314,13 @@ bool ActivatingState::getImagePathFromUrl(const std::string& urlScheme,
             *imagePath = imageUrl.substr(urlScheme.size() - 1);
             return true;
         }
-        else
-        {
-            LogMsg(Logger::Error, "Invalid parameter provied");
-            return false;
-        }
-    }
-    else
-    {
-        LogMsg(Logger::Error, "Provided url does not match scheme");
+
+        LogMsg(Logger::Error, "Invalid parameter provied");
         return false;
     }
+
+    LogMsg(Logger::Error, "Provided url does not match scheme");
+    return false;
 }
 
 bool ActivatingState::isHttpsUrl(const std::string& imageUrl)
@@ -353,16 +351,13 @@ fs::path ActivatingState::getImagePath(const std::string& imageUrl)
 
     if (isHttpsUrl(imageUrl) && getImagePathFromHttpsUrl(imageUrl, &imagePath))
     {
-        return fs::path(imagePath);
+        return {imagePath};
     }
-    else if (isCifsUrl(imageUrl) &&
-             getImagePathFromCifsUrl(imageUrl, &imagePath))
+    if (isCifsUrl(imageUrl) && getImagePathFromCifsUrl(imageUrl, &imagePath))
     {
-        return fs::path(imagePath);
+        return {imagePath};
     }
-    else
-    {
-        LogMsg(Logger::Error, "Unrecognized url's scheme encountered");
-        return fs::path("");
-    }
+
+    LogMsg(Logger::Error, "Unrecognized url's scheme encountered");
+    return {""};
 }

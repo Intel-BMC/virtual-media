@@ -11,8 +11,6 @@ struct BasicEvent
     {
     }
 
-    virtual ~BasicEvent() = default;
-
     const char* eventName;
 };
 
@@ -22,7 +20,7 @@ struct RegisterDbusEvent : public BasicEvent
         std::shared_ptr<sdbusplus::asio::connection> bus,
         std::shared_ptr<sdbusplus::asio::object_server> objServer) :
         BasicEvent(__FUNCTION__),
-        bus(bus), objServer(objServer)
+        bus(std::move(bus)), objServer(std::move(objServer))
     {
     }
 
@@ -40,14 +38,16 @@ struct MountEvent : public BasicEvent
     }
 
     MountEvent(const MountEvent&) = delete;
-    MountEvent(MountEvent&& other) :
+
+    MountEvent(MountEvent&& other) noexcept :
         BasicEvent(__FUNCTION__), target(std::move(other.target))
     {
         other.target = std::nullopt;
     }
 
     MountEvent& operator=(const MountEvent&) = delete;
-    MountEvent& operator=(MountEvent&& other)
+
+    MountEvent& operator=(MountEvent&& other) noexcept
     {
         target = std::nullopt;
         std::swap(target, other.target);

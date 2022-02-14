@@ -47,10 +47,9 @@ struct Critical
 template <std::size_t Len>
 constexpr const char* baseNameImpl(const char (&str)[Len], std::size_t pos)
 {
-    return pos == 0 ? str
-                    : (str[pos] == '/' || str[pos] == '\\')
-                          ? str + pos + 1
-                          : baseNameImpl(str, --pos);
+    return pos == 0                                ? str
+           : (str[pos] == '/' || str[pos] == '\\') ? str + pos + 1
+                                                   : baseNameImpl(str, --pos);
 }
 
 template <std::size_t Len>

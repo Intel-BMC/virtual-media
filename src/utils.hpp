@@ -231,7 +231,7 @@ class VolatileFile
         FileObject(const FileObject&) = delete;
         FileObject& operator=(const FileObject&) = delete;
 
-        ssize_t write(void* data, ssize_t nw)
+        ssize_t write(void* data, size_t nw)
         {
             return ::write(fd, data, nw);
         }
@@ -271,7 +271,8 @@ class VolatileFile
             {
                 std::size_t bytesToWrite =
                     std::min(secretLimit, (size - bytesWritten));
-                file.write(buf.data(), bytesToWrite);
+                file.write(buf.data(),
+                           static_cast<std::streamsize>(bytesToWrite));
                 bytesWritten += bytesToWrite;
             }
         }

@@ -218,7 +218,7 @@ class Configuration
                             {
                                 mp.mode = Configuration::Mode::proxy;
                             }
-#if LEGACY_MODE_ENABLED
+#ifdef LEGACY_MODE_ENABLED
                             else if (*value == 1)
                             {
                                 mp.mode = Configuration::Mode::legacy;
