@@ -1,14 +1,19 @@
 #pragma once
 
+#include "logger.hpp"
+
 #include <unistd.h>
 
 #include <algorithm>
+#include <boost/asio/steady_timer.hpp>
 #include <boost/process/async_pipe.hpp>
 #include <boost/type_traits/has_dereference.hpp>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <sdbusplus/asio/object_server.hpp>
 #include <string>
+#include <system_error>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -281,4 +286,80 @@ class VolatileFile
     std::string filePath;
     const std::size_t size;
 };
+
+class SignalSender
+{
+  public:
+    SignalSender(std::shared_ptr<sdbusplus::asio::connection> con,
+                 const std::string& obj, const std::string& iface,
+                 const std::string& name) :
+        con(con),
+        interface(iface), object(obj), name(name){};
+
+    SignalSender() = delete;
+    SignalSender(const SignalSender&) = delete;
+
+    void send(std::optional<const std::error_code> status)
+    {
+        auto msgSignal =
+            con->new_signal(object.c_str(), interface.c_str(), name.c_str());
+
+        msgSignal.append(status.value_or(std::error_code{}).value());
+        LogMsg(Logger::Debug, "Sending signal: Object: ", object,
+               ", Interface: ", interface, ", Name: ", name,
+               "Status: ", status.value_or(std::error_code{}).value());
+        msgSignal.signal_send();
+    }
+
+  private:
+    std::shared_ptr<sdbusplus::asio::connection> con;
+    std::string interface;
+    std::string object;
+    std::string name;
+};
+
+class NotificationWrapper
+{
+  public:
+    NotificationWrapper(std::unique_ptr<SignalSender> signal,
+                        std::unique_ptr<boost::asio::steady_timer> timer) :
+        signal(std::move(signal)),
+        timer(std::move(timer))
+    {
+    }
+
+    void start(std::function<void(const boost::system::error_code&)>&& handler,
+               const std::chrono::seconds& duration)
+    {
+        LogMsg(Logger::Debug, "Notification initiated");
+        started = true;
+        timer->expires_from_now(duration);
+        timer->async_wait([this, handler{std::move(handler)}](
+                              const boost::system::error_code& ec) {
+            started = false;
+            handler(ec);
+        });
+    }
+
+    void notify(const std::error_code& ec)
+    {
+        if (started)
+        {
+            timer->cancel();
+            if (ec)
+                signal->send((ec));
+            else
+                signal->send(std::nullopt);
+            started = false;
+            return;
+        }
+        LogMsg(Logger::Debug, "Notification(ec) supressed (not started)");
+    }
+
+  private:
+    std::unique_ptr<SignalSender> signal;
+    std::unique_ptr<boost::asio::steady_timer> timer;
+    bool started{false};
+};
+
 } // namespace utils

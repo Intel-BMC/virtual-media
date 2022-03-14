@@ -54,7 +54,8 @@ std::unique_ptr<BasicState> ActivatingState::handleEvent([
     [maybe_unused]] SubprocessStoppedEvent event)
 {
     LogMsg(Logger::Error, "Process ended prematurely");
-    return std::make_unique<ReadyState>(machine);
+    return std::make_unique<ReadyState>(machine, std::errc::connection_refused,
+                                        "Process ended prematurely");
 }
 
 std::unique_ptr<BasicState> ActivatingState::activateProxyMode()

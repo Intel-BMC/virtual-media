@@ -24,7 +24,10 @@ struct ReadyState : public BasicStateT<ReadyState>
     };
 
     ReadyState(interfaces::MountPointStateMachine& machine) :
-        BasicStateT(machine){};
+        BasicStateT(machine)
+    {
+        machine.notify();
+    };
 
     ReadyState(interfaces::MountPointStateMachine& machine, const std::errc& ec,
                const std::string& message) :
@@ -33,6 +36,7 @@ struct ReadyState : public BasicStateT<ReadyState>
     {
         LogMsg(Logger::Error, machine.getName(),
                " Errno = ", static_cast<int>(ec), " : ", message);
+        machine.notify(std::make_error_code(ec));
     }
 
     std::unique_ptr<BasicState> onEnter() override
@@ -47,6 +51,7 @@ struct ReadyState : public BasicStateT<ReadyState>
 
     std::unique_ptr<BasicState> handleEvent(MountEvent event)
     {
+        machine.notificationStart();
         if (event.target)
         {
             machine.getTarget() = std::move(event.target);

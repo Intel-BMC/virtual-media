@@ -1,7 +1,13 @@
 #include "active_state.hpp"
 #include "basic_state.hpp"
+#include "logger.hpp"
 #include "ready_state.hpp"
 
+#include <sys/mount.h>
+
+#include <memory>
+#include <sdbusplus/asio/connection.hpp>
+#include <string>
 #include <system_error>
 
 struct InitialState : public BasicStateT<InitialState>
@@ -200,85 +206,18 @@ struct InitialState : public BasicStateT<InitialState>
 
         auto iface = event.objServer->add_interface(path, name);
 
-        const auto timerPeriod = std::chrono::milliseconds(100);
-        const auto duration = std::chrono::seconds(
-            machine.getConfig().timeout.value_or(
-                Configuration::MountPoint::defaultTimeout) +
-            5);
-        const auto waitCnt =
-            std::chrono::duration_cast<std::chrono::milliseconds>(duration) /
-            timerPeriod;
-        LogMsg(Logger::Debug, "[App] waitCnt == ", waitCnt);
+        iface->register_signal<int32_t>("Completion");
+        machine.notificationInitialize(event.bus, path, name, "Completion");
 
         // Common unmount
-        iface->register_method(
-            "Unmount", [&machine = machine, waitCnt,
-                        timerPeriod](boost::asio::yield_context yield) {
-                LogMsg(Logger::Info, "[App]: Unmount called on ",
-                       machine.getName());
-                machine.emitUnmountEvent();
+        iface->register_method("Unmount", [&machine = machine]() {
+            LogMsg(Logger::Info, "[App]: Unmount called on ",
+                   machine.getName());
 
-                auto repeats = waitCnt;
-                boost::asio::steady_timer timer(machine.getIoc());
-                while (repeats > 0)
-                {
-                    if (machine.getState().get_if<ReadyState>())
-                    {
-                        LogMsg(Logger::Debug, "[App] Unmount ok");
-                        return true;
-                    }
-                    boost::system::error_code ignored_ec;
-                    timer.expires_from_now(timerPeriod);
-                    timer.async_wait(yield[ignored_ec]);
-                    repeats--;
-                }
-                LogMsg(Logger::Error,
-                       "[App] timedout when waiting for ReadyState");
-                throw sdbusplus::exception::SdBusError(EBUSY,
-                                                       "Resource is busy");
-                return false;
-            });
+            machine.emitUnmountEvent();
 
-        // Common mount
-        const auto handleMount =
-            [waitCnt, timerPeriod](
-                boost::asio::yield_context yield,
-                interfaces::MountPointStateMachine& machine,
-                std::optional<interfaces::MountPointStateMachine::Target>
-                    target) {
-                machine.emitMountEvent(std::move(target));
-
-                auto repeats = waitCnt;
-                boost::asio::steady_timer timer(machine.getIoc());
-                while (repeats > 0)
-                {
-                    if (auto s = machine.getState().get_if<ReadyState>())
-                    {
-                        if (s->error)
-                        {
-                            throw sdbusplus::exception::SdBusError(
-                                static_cast<int>(s->error->code),
-                                s->error->message.c_str());
-                        }
-                        LogMsg(Logger::Error, "[App] Mount failed");
-                        return false;
-                    }
-                    if (machine.getState().get_if<ActiveState>())
-                    {
-                        LogMsg(Logger::Info, "[App] Mount ok");
-                        return true;
-                    }
-                    boost::system::error_code ignored_ec;
-                    timer.expires_from_now(timerPeriod);
-                    timer.async_wait(yield[ignored_ec]);
-                    repeats--;
-                }
-                LogMsg(Logger::Error,
-                       "[App] timedout when waiting for ActiveState");
-                throw sdbusplus::exception::SdBusError(EBUSY,
-                                                       "Resource is busy");
-                return false;
-            };
+            return true;
+        });
 
         // Mount specialization
         if (isLegacy)
@@ -287,9 +226,9 @@ struct InitialState : public BasicStateT<InitialState>
             using optional_fd = std::variant<int, unix_fd>;
 
             iface->register_method(
-                "Mount", [&machine = machine, handleMount](
-                             boost::asio::yield_context yield,
-                             std::string imgUrl, bool rw, optional_fd fd) {
+                "Mount", [&machine = machine](boost::asio::yield_context yield,
+                                              std::string imgUrl, bool rw,
+                                              optional_fd fd) {
                     LogMsg(Logger::Info, "[App]: Mount called on ",
                            getObjectPath(machine), machine.getName());
 
@@ -333,48 +272,21 @@ struct InitialState : public BasicStateT<InitialState>
                         utils::secureCleanup(buf);
                     }
 
-                    try
-                    {
-                        auto ret =
-                            handleMount(yield, machine, std::move(target));
-                        if (machine.getTarget())
-                        {
-                            machine.getTarget()->credentials.reset();
-                        }
-                        LogMsg(Logger::Info, "[App]: mount completed ", ret);
-                        return ret;
-                    }
-                    catch (const std::exception& e)
-                    {
-                        LogMsg(Logger::Error, e.what());
-                        if (machine.getTarget())
-                        {
-                            machine.getTarget()->credentials.reset();
-                        }
-                        throw;
-                        return false;
-                    }
-                    catch (...)
-                    {
-                        if (machine.getTarget())
-                        {
-                            machine.getTarget()->credentials.reset();
-                        }
-                        throw;
-                        return false;
-                    }
+                    machine.emitMountEvent(std::move(target));
+
+                    return true;
                 });
         }
-        else
+        else // proxy
         {
-            iface->register_method(
-                "Mount", [&machine = machine,
-                          handleMount](boost::asio::yield_context yield) {
-                    LogMsg(Logger::Info, "[App]: Mount called on ",
-                           getObjectPath(machine), machine.getName());
+            iface->register_method("Mount", [&machine = machine]() mutable {
+                LogMsg(Logger::Info, "[App]: Mount called on ",
+                       getObjectPath(machine), machine.getName());
 
-                    return handleMount(yield, machine, std::nullopt);
-                });
+                machine.emitMountEvent(std::nullopt);
+
+                return true;
+            });
         }
 
         iface->initialize();

@@ -64,14 +64,17 @@ struct DeactivatingState : public BasicStateT<DeactivatingState>
             {
                 LogMsg(Logger::Info, machine.getName(),
                        " udev StateChange::removed");
+                return std::make_unique<ReadyState>(machine);
             }
             else
             {
                 LogMsg(Logger::Error, machine.getName(), " udev StateChange::",
                        static_cast<std::underlying_type_t<StateChange>>(
                            udevStateChangeEvent->devState));
+                return std::make_unique<ReadyState>(
+                    machine, std::errc::connection_refused,
+                    "Not expected udev state");
             }
-            return std::make_unique<ReadyState>(machine);
         }
         return nullptr;
     }

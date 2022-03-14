@@ -14,7 +14,10 @@ struct ActiveState : public BasicStateT<ActiveState>
                 std::unique_ptr<resource::Process> process,
                 std::unique_ptr<resource::Gadget> gadget) :
         BasicStateT(machine),
-        process(std::move(process)), gadget(std::move(gadget)){};
+        process(std::move(process)), gadget(std::move(gadget))
+    {
+        machine.notify();
+    };
 
     virtual std::unique_ptr<BasicState> onEnter()
     {
@@ -43,12 +46,9 @@ struct ActiveState : public BasicStateT<ActiveState>
                        Configuration::inactivityTimeout.count(),
                        "s) - Unmounting");
                 // unmount media & stop retriggering timer
-                boost::asio::spawn(
-                    machine.getIoc(),
-                    [&machine = machine](
-                        [[maybe_unused]] boost::asio::yield_context yield) {
-                        machine.emitUnmountEvent();
-                    });
+                boost::asio::post(machine.getIoc(), [&machine = machine]() {
+                    machine.emitUnmountEvent();
+                });
                 return;
             }
             else
@@ -80,6 +80,7 @@ struct ActiveState : public BasicStateT<ActiveState>
 
     std::unique_ptr<BasicState> handleEvent([[maybe_unused]] UnmountEvent event)
     {
+        machine.notificationStart();
         return std::make_unique<DeactivatingState>(machine, std::move(process),
                                                    std::move(gadget));
     }

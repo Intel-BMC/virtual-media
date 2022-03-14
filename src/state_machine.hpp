@@ -1,10 +1,13 @@
 #pragma once
-
 #include "interfaces/mount_point_state_machine.hpp"
 #include "state/initial_state.hpp"
+#include "utils.hpp"
 
+#include <boost/asio/steady_timer.hpp>
+#include <functional>
 #include <memory>
 #include <sdbusplus/asio/object_server.hpp>
+#include <system_error>
 
 struct MountPointStateMachine : public interfaces::MountPointStateMachine
 {
@@ -106,9 +109,52 @@ struct MountPointStateMachine : public interfaces::MountPointStateMachine
         }
     }
 
+    virtual void
+        notificationInitialize(std::shared_ptr<sdbusplus::asio::connection> con,
+                               const std::string& svc, const std::string& iface,
+                               const std::string& name) override
+    {
+        auto signal = std::make_unique<utils::SignalSender>(std::move(con), svc,
+                                                            iface, name);
+
+        auto timer = std::make_unique<boost::asio::steady_timer>(ioc);
+
+        completionNotification = std::make_unique<utils::NotificationWrapper>(
+            std::move(signal), std::move(timer));
+    }
+    void notificationStart()
+    {
+        auto notificationHandler = [this](const boost::system::error_code& ec) {
+            if (ec == boost::system::errc::operation_canceled)
+            {
+                return;
+            }
+
+            LogMsg(Logger::Error,
+                   "[App] timedout when waiting for target state");
+
+            completionNotification->notify(
+                std::make_error_code(std::errc::device_or_resource_busy));
+        };
+
+        LogMsg(Logger::Debug, "Started notification");
+        completionNotification->start(
+            std::move(notificationHandler),
+            std::chrono::seconds(
+                config.timeout.value_or(
+                    Configuration::MountPoint::defaultTimeout) +
+                5));
+    }
+
+    virtual void notify(const std::error_code& ec = {}) override
+    {
+        completionNotification->notify(ec);
+    }
+
     boost::asio::io_context& ioc;
     std::string name;
     Configuration::MountPoint config;
+    std::unique_ptr<utils::NotificationWrapper> completionNotification;
 
     std::optional<Target> target;
     std::unique_ptr<BasicState> state = std::make_unique<InitialState>(*this);
