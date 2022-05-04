@@ -9,6 +9,7 @@
 #include <boost/process/async_pipe.hpp>
 #include <boost/type_traits/has_dereference.hpp>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <optional>
 #include <sdbusplus/asio/object_server.hpp>
